@@ -18,6 +18,12 @@ import MenuItem from "@mui/material/MenuItem";
 import { TextField } from "@mui/material";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
+import {
+	useGetFiles,
+	useGetCategories,
+	useGetSocietes,
+} from "./service/app.service";
+import baseURL from "./env";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
 	fontWeight: "bold",
@@ -45,81 +51,94 @@ const CircleButton = styled(Button)(({ theme }) => ({
 }));
 
 const TableComponent = () => {
-	const [data, setData] = useState([]);
 	const [filteredData, setFilteredData] = useState([]);
-	const [page, setPage] = useState(0);
-	const [rowsPerPage, setRowsPerPage] = useState(5);
-	const [filterCategorie, setFilterCategorie] = useState("");
+	const [page, setPage] = useState(1);
+	const [perPage, setPerPage] = useState(5);
+	// const [rowsPerPage, setRowsPerPage] = useState(5);
+	const [filterCategorie, setFilterCategorie] = useState(null);
 	// const [filterDate, setFilterDate] = useState("");
 	// const [filterClient, setFilterClient] = useState("");
-	const [filterSociete, setFilterSociete] = useState("");
-	const [searchQuery, setSearchQuery] = useState("");
+	const [filterSociete, setFilterSociete] = useState(null);
+	const [searchQuery, setSearchQuery] = useState(null);
+	const [query, setQuery] = useState(null);
+
+	const [totalRows, setTotalRows] = useState(0);
+	const [categorie, setCategorie] = useState("categorie");
+	const [societe, setSociete] = useState("societe");
+
+	const getFilesQuery = useGetFiles({
+		categorie: filterCategorie,
+		societe: filterSociete,
+		page: page + 1,
+		perPage: perPage,
+		query: searchQuery,
+	});
+	const filesData = getFilesQuery?.data?.data;
+	const filesQuery = getFilesQuery?.data;
+	const getCategoriesQuery = useGetCategories();
+	const categorieData = getCategoriesQuery?.data;
+	const getSocietesQuery = useGetSocietes();
+	const societeData = getSocietesQuery?.data;
 
 	useEffect(() => {
-		fetchData();
-	}, []);
-
-	const fetchData = async () => {
-		const response = await fetch("http://127.0.0.1:5000/files");
-		const json = await response.json();
-		setData(json);
-		setFilteredData(json);
-	};
+		setTotalRows(filesQuery?.total_count);
+	}, [filesQuery]);
+	console.log(filesData);
 	const exportExcel = async () => {
-		const workbook = XLSX.utils.book_new();
-		const worksheet = XLSX.utils.json_to_sheet(filteredData);
-		XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-		const excelBuffer = XLSX.write(workbook, {
-			type: "array",
-			bookType: "xlsx",
-		});
-		const dataBlob = new Blob([excelBuffer], {
-			type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-		});
-		saveAs(dataBlob, "data.xlsx");
+		const url = `${baseURL}/files/exportsheet?${
+			filterSociete !== null ? `societe=${filterSociete}&` : ""
+		}${filterCategorie !== null ? `categorie=${filterCategorie}&` : ""}${
+			searchQuery !== null ? `query=${searchQuery}` : ""
+		}`;
+		fetch(url)
+			.then((response) => response.blob())
+			.then((blob) => {
+				// Create a download link
+				const url = window.URL.createObjectURL(new Blob([blob]));
+				const link = document.createElement("a");
+				link.href = url;
+				link.setAttribute("download", "data.xlsx");
+				document.body.appendChild(link);
+				link.click();
+
+				// Clean up the URL and link
+				window.URL.revokeObjectURL(url);
+				document.body.removeChild(link);
+			})
+			.catch((error) => {
+				console.error("Error downloading Excel file:", error);
+			});
 	};
 
 	const handleChangePage = (event, newPage) => {
 		setPage(newPage);
 	};
-
+	console.log(page);
 	const handleChangeRowsPerPage = (event) => {
-		setRowsPerPage(parseInt(event.target.value, 10));
-		setPage(0);
+		setPerPage(parseInt(event.target.value, 10));
 	};
 
 	// const [selectedCategorie, setSelectedCategorie] = useState("");
 
 	const handleFilter = () => {
-		const filtered = data.filter((row) => {
-			const matchCategorie =
-				filterCategorie === "" || row.categorie === filterCategorie;
-			// const matchDate = filterDate ? row.date.includes(filterDate) : true;
-			// const matchClient = filterClient
-			//   ? row.name.toLowerCase().includes(filterClient.toLowerCase())
-			//   : true;
-			const matchSociete = filterSociete ? row.societe === filterSociete : true;
-			const matchSearch = searchQuery
-				? Object.values(row).some((value) =>
-						value.toLowerCase().includes(searchQuery.toLowerCase())
-				  )
-				: true;
-			return (
-				matchCategorie &&
-				// matchDate &&
-				// matchClient &&
-				matchSociete &&
-				matchSearch
-			);
-		});
-		setFilteredData(filtered);
+		if (categorie === "categorie") {
+			setFilterCategorie(null);
+		} else {
+			setFilterCategorie(categorie);
+		}
+		if (societe === "societe") {
+			setFilterSociete(null);
+		} else {
+			setFilterSociete(societe);
+		}
+		setSearchQuery(query);
 		setPage(0);
 	};
 
 	// Extracting unique clients, categories, and societes from the data for the select dropdowns
 	// const clientOptions = [...new Set(data.map((row) => row.name))];
-	const categorieOptions = [...new Set(data.map((row) => row.categorie))];
-	const societeOptions = [...new Set(data.map((row) => row.societe))];
+	// const categorieOptions = [...new Set(data.map((row) => row.categorie))];
+	// const societeOptions = [...new Set(data.map((row) => row.societe))];
 
 	return (
 		<div className="flex flex-col p-6 mt-2">
@@ -129,39 +148,45 @@ const TableComponent = () => {
 						variant="outlined"
 						size="small"
 						label="Search"
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
 					/>
 					<FormControl variant="outlined" size="small" className="mr-2">
 						<Select
-							value={filterCategorie}
-							onChange={(e) => setFilterCategorie(e.target.value)}
+							value={categorie}
+							onChange={(e) => setCategorie(e.target.value)}
 							displayEmpty
 							className="filter-select">
-							<MenuItem value="">Catégorie</MenuItem>
-							{categorieOptions.map(
-								(categorie) =>
-									categorie && (
-										<MenuItem key={categorie} value={categorie}>
-											{categorie}
-										</MenuItem>
-									)
-							)}
+							<MenuItem key="categorie" value="categorie">
+								Catégorie
+							</MenuItem>
+							{getCategoriesQuery?.isSuccess &&
+								categorieData?.map(
+									(categorie) =>
+										categorie && (
+											<MenuItem key={categorie} value={categorie}>
+												{categorie}
+											</MenuItem>
+										)
+								)}
 						</Select>
 					</FormControl>
 
 					<FormControl variant="outlined" size="small" className="mr-2">
 						<Select
-							value={filterSociete}
-							onChange={(e) => setFilterSociete(e.target.value)}
+							value={societe}
+							onChange={(e) => setSociete(e.target.value)}
 							displayEmpty
 							className="filter-select">
-							<MenuItem value="">Societe</MenuItem>
-							{societeOptions.map((societe) => (
-								<MenuItem key={societe} value={societe}>
-									{societe}
-								</MenuItem>
-							))}
+							<MenuItem key="societe" value="societe">
+								Societe
+							</MenuItem>
+							{getSocietesQuery?.isSuccess &&
+								societeData?.map((societe) => (
+									<MenuItem key={societe} value={societe}>
+										{societe}
+									</MenuItem>
+								))}
 						</Select>
 					</FormControl>
 					<Button variant="contained" onClick={handleFilter}>
@@ -173,7 +198,8 @@ const TableComponent = () => {
 						<CircleButton
 							title="Fetch Data"
 							variant="contained"
-							onClick={fetchData}>
+							// onClick={fetchData}
+						>
 							<CloudSyncIcon />
 						</CircleButton>
 					</div>
@@ -198,12 +224,12 @@ const TableComponent = () => {
 							<StyledTableCell>Adresse</StyledTableCell>
 							<StyledTableCell>Société</StyledTableCell>
 							<StyledTableCell>Catégorie</StyledTableCell>
+							<StyledTableCell>numéro de telephone</StyledTableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						{filteredData
-							.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-							.map((row, index) => (
+						{getFilesQuery?.isSuccess &&
+							filesData.map((row, index) => (
 								<TableRow key={index}>
 									<StyledTableCells>{row.path}</StyledTableCells>
 									<StyledTableCells>{row.date}</StyledTableCells>
@@ -211,6 +237,7 @@ const TableComponent = () => {
 									<StyledTableCells>{row.adresse}</StyledTableCells>
 									<StyledTableCells>{row.societe}</StyledTableCells>
 									<StyledTableCells>{row.categorie}</StyledTableCells>
+									<StyledTableCells>{row.phone_number}</StyledTableCells>
 								</TableRow>
 							))}
 					</TableBody>
@@ -218,8 +245,8 @@ const TableComponent = () => {
 				<TablePagination
 					rowsPerPageOptions={[5, 10, 25]}
 					component="div"
-					count={filteredData.length}
-					rowsPerPage={rowsPerPage}
+					count={totalRows}
+					rowsPerPage={perPage}
 					page={page}
 					onPageChange={handleChangePage}
 					onRowsPerPageChange={handleChangeRowsPerPage}
