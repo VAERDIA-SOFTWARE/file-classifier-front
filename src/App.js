@@ -1,4 +1,4 @@
-import logo from "./logo.svg";
+import logo from "./logo_beaverrr.png";
 import "./App.css";
 import DirectoryPicker from "./DirectoryPicker";
 import AppBarCustome from "./AppBarCustome";
