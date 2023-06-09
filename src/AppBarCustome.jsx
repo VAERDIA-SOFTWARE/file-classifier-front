@@ -12,7 +12,7 @@ import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 import AdbIcon from "@mui/icons-material/Adb";
-import logo from "./vvaerdia.png";
+import logo from "./logo_beaverrr.png";
 
 const pages = ["Products", "Pricing", "Blog"];
 const settings = ["Profile", "Account", "Dashboard", "Logout"];
@@ -56,7 +56,7 @@ function AppBarCustome() {
               textDecoration: "none",
             }}
           >
-            <img className="w-20" src={logo} />
+            <img className="w-20 p-3" src={logo} />
           </Typography>
 
           <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
@@ -111,7 +111,7 @@ function AppBarCustome() {
               textDecoration: "none",
             }}
           >
-            <img className="w-20" src={logo} />
+            <img className="w-20 p-3" src={logo} />
           </Typography>
           <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
             {pages.map((page) => (
