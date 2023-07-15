@@ -1,4 +1,5 @@
 import * as React from "react";
+import dayjs, { Dayjs } from "dayjs";
 import { useState, useEffect } from "react";
 import Button from "@mui/material/Button";
 import Table from "@mui/material/Table";
@@ -16,6 +17,7 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import { TextField } from "@mui/material";
+import CustomDatePicker from "./components/CustomDatePicker";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 import {
@@ -24,6 +26,7 @@ import {
   useGetSocietes,
 } from "./service/app.service";
 import baseURL from "./env";
+// import frLocale from "@mui/material/locale/fr";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: "bold",
@@ -50,8 +53,12 @@ const CircleButton = styled(Button)(({ theme }) => ({
   marginBottom: "2rem",
 }));
 
-const TableComponent = () => {
+const TableComponent = ({ noExcel }) => {
   const [filteredData, setFilteredData] = useState([]);
+  const [tempStartDateValue, tempSetStartDateValue] = React.useState(dayjs());
+  const [tempEndDateValue, tempSetEndDateValue] = React.useState(dayjs());
+  const [startDateValue, setStartDateValue] = React.useState(null);
+  const [endDateValue, setEndDateValue] = React.useState(null);
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(5);
   // const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -67,11 +74,14 @@ const TableComponent = () => {
   const [societe, setSociete] = useState("societe");
 
   const getFilesQuery = useGetFiles({
+    noExcel: noExcel,
     categorie: filterCategorie,
     societe: filterSociete,
     page: page + 1,
     perPage: perPage,
     query: searchQuery,
+    startDate: startDateValue,
+    endDate: endDateValue,
   });
   const filesData = getFilesQuery?.data?.data;
   const filesQuery = getFilesQuery?.data;
@@ -83,7 +93,7 @@ const TableComponent = () => {
   useEffect(() => {
     setTotalRows(filesQuery?.total_count);
   }, [filesQuery]);
-  console.log(filesData);
+
   const exportExcel = async () => {
     const url = `${baseURL}/files/exportsheet?${
       filterSociete !== null ? `societe=${filterSociete}&` : ""
@@ -131,6 +141,9 @@ const TableComponent = () => {
     } else {
       setFilterSociete(societe);
     }
+    setStartDateValue(tempStartDateValue.format("MM-DD-YYYY"));
+    setEndDateValue(tempEndDateValue.format("MM-DD-YYYY"));
+
     setSearchQuery(query);
     setPage(0);
   };
@@ -145,13 +158,11 @@ const TableComponent = () => {
       <div className="flex justify-between mb-2">
         <div className="flex gap-5 mb-10">
           <TextField
-            variant="outlined"
-            size="small"
-            label="Search"
+            label="Recherche"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <FormControl variant="outlined" size="small" className="mr-2">
+          <FormControl className="mr-2">
             <Select
               value={categorie}
               onChange={(e) => setCategorie(e.target.value)}
@@ -173,7 +184,7 @@ const TableComponent = () => {
             </Select>
           </FormControl>
 
-          <FormControl variant="outlined" size="small" className="mr-2">
+          <FormControl className="mr-2">
             <Select
               value={societe}
               onChange={(e) => setSociete(e.target.value)}
@@ -191,8 +202,22 @@ const TableComponent = () => {
                 ))}
             </Select>
           </FormControl>
+          {noExcel && (
+            <>
+              <CustomDatePicker
+                label="Date Début"
+                value={tempStartDateValue}
+                setValue={tempSetStartDateValue}
+              />
+              <CustomDatePicker
+                label="Date Fin"
+                value={tempEndDateValue}
+                setValue={tempSetEndDateValue}
+              />
+            </>
+          )}
           <Button variant="contained" onClick={handleFilter}>
-            Filter
+            Filtre
           </Button>
         </div>
         <div className="flex gap-8">
@@ -205,16 +230,18 @@ const TableComponent = () => {
               <CloudSyncIcon />
             </CircleButton>
           </div>
-          <div className="flex items-center">
-            <CircleButton
-              title="Export to Excel"
-              variant="contained"
-              onClick={exportExcel}
-              style={{ backgroundColor: "#0D7813" }}
-            >
-              <PostAddIcon />
-            </CircleButton>
-          </div>
+          {!noExcel && (
+            <div className="flex items-center">
+              <CircleButton
+                title="Export to Excel"
+                variant="contained"
+                onClick={exportExcel}
+                style={{ backgroundColor: "#0D7813" }}
+              >
+                <PostAddIcon />
+              </CircleButton>
+            </div>
+          )}
         </div>
       </div>
       <TableContainer component={Paper}>
@@ -253,6 +280,7 @@ const TableComponent = () => {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Lignes par page :"
         />
       </TableContainer>
     </div>
