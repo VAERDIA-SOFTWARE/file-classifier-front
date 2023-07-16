@@ -95,196 +95,195 @@ const TableComponent = ({ noExcel }) => {
   }, [filesQuery]);
 
   const exportExcel = async () => {
-    const url = `${baseURL}/files/exportsheet?${
-      filterSociete !== null ? `societe=${filterSociete}&` : ""
-    }${filterCategorie !== null ? `categorie=${filterCategorie}&` : ""}${
-      searchQuery !== null ? `query=${searchQuery}` : ""
-    }`;
-    fetch(url)
-      .then((response) => response.blob())
-      .then((blob) => {
-        // Create a download link
-        const url = window.URL.createObjectURL(new Blob([blob]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", "data.xlsx");
-        document.body.appendChild(link);
-        link.click();
+		const isHistoryRoute = window.location.pathname === "/history";
+		const excelParam = isHistoryRoute ? "excel=true" : "excel=false";
 
-        // Clean up the URL and link
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(link);
-      })
-      .catch((error) => {
-        console.error("Error downloading Excel file:", error);
-      });
-  };
+		const url = `${baseURL}/files/exportsheet?${
+			filterSociete !== null ? `societe=${filterSociete}&` : ""
+		}${filterCategorie !== null ? `categorie=${filterCategorie}&` : ""}${
+			searchQuery !== null ? `query=${searchQuery}&` : ""
+		}${excelParam}`;
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-  console.log(page);
-  const handleChangeRowsPerPage = (event) => {
-    setPerPage(parseInt(event.target.value, 10));
-  };
+		fetch(url)
+			.then((response) => response.blob())
+			.then((blob) => {
+				// Create a download link
+				const url = window.URL.createObjectURL(new Blob([blob]));
+				const link = document.createElement("a");
+				link.href = url;
+				link.setAttribute("download", "data.xlsx");
+				document.body.appendChild(link);
+				link.click();
 
-  // const [selectedCategorie, setSelectedCategorie] = useState("");
+				// Clean up the URL and link
+				window.URL.revokeObjectURL(url);
+				document.body.removeChild(link);
+			})
+			.catch((error) => {
+				console.error("Error downloading Excel file:", error);
+			});
+	};
 
-  const handleFilter = () => {
-    if (categorie === "categorie") {
-      setFilterCategorie(null);
-    } else {
-      setFilterCategorie(categorie);
-    }
-    if (societe === "societe") {
-      setFilterSociete(null);
-    } else {
-      setFilterSociete(societe);
-    }
-    setStartDateValue(tempStartDateValue.format("MM-DD-YYYY"));
-    setEndDateValue(tempEndDateValue.format("MM-DD-YYYY"));
+	const handleChangePage = (event, newPage) => {
+		setPage(newPage);
+	};
+	console.log(page);
+	const handleChangeRowsPerPage = (event) => {
+		setPerPage(parseInt(event.target.value, 10));
+	};
 
-    setSearchQuery(query);
-    setPage(0);
-  };
+	// const [selectedCategorie, setSelectedCategorie] = useState("");
 
-  // Extracting unique clients, categories, and societes from the data for the select dropdowns
-  // const clientOptions = [...new Set(data.map((row) => row.name))];
-  // const categorieOptions = [...new Set(data.map((row) => row.categorie))];
-  // const societeOptions = [...new Set(data.map((row) => row.societe))];
+	const handleFilter = () => {
+		if (categorie === "categorie") {
+			setFilterCategorie(null);
+		} else {
+			setFilterCategorie(categorie);
+		}
+		if (societe === "societe") {
+			setFilterSociete(null);
+		} else {
+			setFilterSociete(societe);
+		}
+		setStartDateValue(tempStartDateValue.format("MM-DD-YYYY"));
+		setEndDateValue(tempEndDateValue.format("MM-DD-YYYY"));
 
-  return (
-    <div className="flex flex-col p-6 mt-2">
-      <div className="flex justify-between mb-2">
-        <div className="flex gap-5 mb-10">
-          <TextField
-            label="Recherche"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <FormControl className="mr-2">
-            <Select
-              value={categorie}
-              onChange={(e) => setCategorie(e.target.value)}
-              displayEmpty
-              className="filter-select"
-            >
-              <MenuItem key="categorie" value="categorie">
-                Catégorie
-              </MenuItem>
-              {getCategoriesQuery?.isSuccess &&
-                categorieData?.map(
-                  (categorie) =>
-                    categorie && (
-                      <MenuItem key={categorie} value={categorie}>
-                        {categorie}
-                      </MenuItem>
-                    )
-                )}
-            </Select>
-          </FormControl>
+		setSearchQuery(query);
+		setPage(0);
+	};
 
-          <FormControl className="mr-2">
-            <Select
-              value={societe}
-              onChange={(e) => setSociete(e.target.value)}
-              displayEmpty
-              className="filter-select"
-            >
-              <MenuItem key="societe" value="societe">
-                Societe
-              </MenuItem>
-              {getSocietesQuery?.isSuccess &&
-                societeData?.map((societe) => (
-                  <MenuItem key={societe} value={societe}>
-                    {societe}
-                  </MenuItem>
-                ))}
-            </Select>
-          </FormControl>
-          {noExcel && (
-            <>
-              <CustomDatePicker
-                label="Date Début"
-                value={tempStartDateValue}
-                setValue={tempSetStartDateValue}
-              />
-              <CustomDatePicker
-                label="Date Fin"
-                value={tempEndDateValue}
-                setValue={tempSetEndDateValue}
-              />
-            </>
-          )}
-          <Button variant="contained" onClick={handleFilter}>
-            Filtre
-          </Button>
-        </div>
-        <div className="flex gap-8">
-          <div className="flex items-center">
-            <CircleButton
-              title="Fetch Data"
-              variant="contained"
-              onClick={() => getFilesQuery.refetch()}
-            >
-              <CloudSyncIcon />
-            </CircleButton>
-          </div>
-          {!noExcel && (
-            <div className="flex items-center">
-              <CircleButton
-                title="Export to Excel"
-                variant="contained"
-                onClick={exportExcel}
-                style={{ backgroundColor: "#0D7813" }}
-              >
-                <PostAddIcon />
-              </CircleButton>
-            </div>
-          )}
-        </div>
-      </div>
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }} aria-label="simple table">
-          <TableHead>
-            <TableRow>
-              <StyledTableCell>Chemin</StyledTableCell>
-              <StyledTableCell>Date Systeme</StyledTableCell>
-              <StyledTableCell>Client</StyledTableCell>
-              <StyledTableCell>Adresse</StyledTableCell>
-              <StyledTableCell>Société</StyledTableCell>
-              <StyledTableCell>Catégorie</StyledTableCell>
-              <StyledTableCell>numéro de telephone</StyledTableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {getFilesQuery?.isSuccess &&
-              filesData.map((row, index) => (
-                <TableRow key={index}>
-                  <StyledTableCells>{row.path}</StyledTableCells>
-                  <StyledTableCells>{row.date}</StyledTableCells>
-                  <StyledTableCells>{row.name}</StyledTableCells>
-                  <StyledTableCells>{row.adresse}</StyledTableCells>
-                  <StyledTableCells>{row.societe}</StyledTableCells>
-                  <StyledTableCells>{row.categorie}</StyledTableCells>
-                  <StyledTableCells>{row.phone_number}</StyledTableCells>
-                </TableRow>
-              ))}
-          </TableBody>
-        </Table>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={totalRows}
-          rowsPerPage={perPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Lignes par page :"
-        />
-      </TableContainer>
-    </div>
-  );
+	// Extracting unique clients, categories, and societes from the data for the select dropdowns
+	// const clientOptions = [...new Set(data.map((row) => row.name))];
+	// const categorieOptions = [...new Set(data.map((row) => row.categorie))];
+	// const societeOptions = [...new Set(data.map((row) => row.societe))];
+
+	return (
+		<div className="flex flex-col p-6 mt-2">
+			<div className="flex justify-between mb-2">
+				<div className="flex gap-5 mb-10">
+					<TextField
+						label="Recherche"
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+					/>
+					<FormControl className="mr-2">
+						<Select
+							value={categorie}
+							onChange={(e) => setCategorie(e.target.value)}
+							displayEmpty
+							className="filter-select">
+							<MenuItem key="categorie" value="categorie">
+								Catégorie
+							</MenuItem>
+							{getCategoriesQuery?.isSuccess &&
+								categorieData?.map(
+									(categorie) =>
+										categorie && (
+											<MenuItem key={categorie} value={categorie}>
+												{categorie}
+											</MenuItem>
+										)
+								)}
+						</Select>
+					</FormControl>
+
+					<FormControl className="mr-2">
+						<Select
+							value={societe}
+							onChange={(e) => setSociete(e.target.value)}
+							displayEmpty
+							className="filter-select">
+							<MenuItem key="societe" value="societe">
+								Societe
+							</MenuItem>
+							{getSocietesQuery?.isSuccess &&
+								societeData?.map((societe) => (
+									<MenuItem key={societe} value={societe}>
+										{societe}
+									</MenuItem>
+								))}
+						</Select>
+					</FormControl>
+					{noExcel && (
+						<>
+							<CustomDatePicker
+								label="Date Début"
+								value={tempStartDateValue}
+								setValue={tempSetStartDateValue}
+							/>
+							<CustomDatePicker
+								label="Date Fin"
+								value={tempEndDateValue}
+								setValue={tempSetEndDateValue}
+							/>
+						</>
+					)}
+					<Button variant="contained" onClick={handleFilter}>
+						Filtre
+					</Button>
+				</div>
+				<div className="flex gap-8">
+					<div className="flex items-center">
+						<CircleButton
+							title="Fetch Data"
+							variant="contained"
+							onClick={() => getFilesQuery.refetch()}>
+							<CloudSyncIcon />
+						</CircleButton>
+					</div>
+					{/* {!noExcel && ()} */}
+					<div className="flex items-center">
+						<CircleButton
+							title="Export to Excel"
+							variant="contained"
+							onClick={exportExcel}
+							style={{ backgroundColor: "#0D7813" }}>
+							<PostAddIcon />
+						</CircleButton>
+					</div>
+				</div>
+			</div>
+			<TableContainer component={Paper}>
+				<Table sx={{ minWidth: 650 }} aria-label="simple table">
+					<TableHead>
+						<TableRow>
+							<StyledTableCell>Chemin</StyledTableCell>
+							<StyledTableCell>Date Systeme</StyledTableCell>
+							<StyledTableCell>Client</StyledTableCell>
+							<StyledTableCell>Adresse</StyledTableCell>
+							<StyledTableCell>Société</StyledTableCell>
+							<StyledTableCell>Catégorie</StyledTableCell>
+							<StyledTableCell>numéro de telephone</StyledTableCell>
+						</TableRow>
+					</TableHead>
+					<TableBody>
+						{getFilesQuery?.isSuccess &&
+							filesData.map((row, index) => (
+								<TableRow key={index}>
+									<StyledTableCells>{row.path}</StyledTableCells>
+									<StyledTableCells>{row.date}</StyledTableCells>
+									<StyledTableCells>{row.name}</StyledTableCells>
+									<StyledTableCells>{row.adresse}</StyledTableCells>
+									<StyledTableCells>{row.societe}</StyledTableCells>
+									<StyledTableCells>{row.categorie}</StyledTableCells>
+									<StyledTableCells>{row.phone_number}</StyledTableCells>
+								</TableRow>
+							))}
+					</TableBody>
+				</Table>
+				<TablePagination
+					rowsPerPageOptions={[5, 10, 25]}
+					component="div"
+					count={totalRows}
+					rowsPerPage={perPage}
+					page={page}
+					onPageChange={handleChangePage}
+					onRowsPerPageChange={handleChangeRowsPerPage}
+					labelRowsPerPage="Lignes par page :"
+				/>
+			</TableContainer>
+		</div>
+	);
 };
 
 export default TableComponent;
